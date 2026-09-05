@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Trader's Observatory — Control Panel (Preview)</title>
+<meta name="description" content="Read-only preview of the control panel for an automated trading system: signal pipeline, open positions, equity, and health.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  /* chart chrome and ink, taken from a validated dark reference palette */
+  --plane:#0D0D0D;
+  --surface:#141413;
+  --surface-2:#1A1A19;
+  --ink:#FFFFFF;
+  --ink-2:#C3C2B7;
+  --muted:#898781;
+  --grid:#2C2C2A;
+  --axis:#383835;
+  --hair:rgba(255,255,255,.10);
+
+  /* the only two hues that carry meaning: up and down.
+     Validated as a pair on this surface — CVD ΔE 19.2, well clear of the
+     floor. The green/red pair every trading screen uses fails that test at
+     ΔE 4.1, which is why it is not here. */
+  --up:#3987E5;
+  --down:#E66767;
+
+  --good:#0CA30C; --warn:#FAB219; --crit:#D03B3B;
+
+  --sans:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--plane);color:var(--ink-2);
+  font-family:var(--sans);font-weight:300;font-size:15px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;cursor:pointer;color:inherit}
+:focus-visible{outline:2px solid var(--up);outline-offset:2px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---------------- shell ---------------- */
+.shell{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+@media(max-width:900px){.shell{grid-template-columns:1fr}}
+
+aside{
+  background:var(--surface);border-right:1px solid var(--hair);
+  padding:1.25rem 1rem;display:flex;flex-direction:column;gap:1.5rem;
+}
+@media(max-width:900px){
+  aside{border-right:0;border-bottom:1px solid var(--hair);
+        flex-direction:row;align-items:center;overflow-x:auto;gap:1rem}
+}
+.brand{display:flex;align-items:center;gap:.65rem;color:var(--ink)}
+.brand .dot{width:9px;height:9px;border-radius:50%;background:var(--good);
+  box-shadow:0 0 0 4px rgba(12,163,12,.16);flex:none}
+.brand strong{font-weight:500;font-size:.95rem;letter-spacing:.01em;white-space:nowrap}
+.brand small{display:block;color:var(--muted);font-size:.68rem;letter-spacing:.16em;text-transform:uppercase}
+
+nav{display:flex;flex-direction:column;gap:.15rem}
+@media(max-width:900px){nav{flex-direction:row}}
+nav button{
+  display:flex;align-items:center;gap:.7rem;width:100%;
+  min-height:44px;padding:0 .8rem;background:none;border:0;border-radius:6px;
+  color:var(--ink-2);font-size:.88rem;text-align:start;white-space:nowrap;
+  transition:background .18s,color .18s;
+}
+nav button:hover{background:var(--surface-2);color:var(--ink)}
+nav button[aria-current="page"]{background:var(--surface-2);color:var(--ink);font-weight:400}
+nav button[aria-current="page"] .bar{background:var(--up)}
+nav .bar{width:2px;height:18px;border-radius:2px;background:transparent;flex:none}
+nav svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.5;flex:none}
+
+.side-note{
+  margin-top:auto;font-size:.74rem;color:var(--muted);
+  border-top:1px solid var(--hair);padding-top:1rem;
+}
+@media(max-width:900px){.side-note{display:none}}
+
+main{padding:1.5rem clamp(1rem,3vw,2.25rem) 3rem;min-width:0}
+
+/* ---------------- top strip ---------------- */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:.9rem;margin-bottom:1.5rem}
+h1{color:var(--ink);font-size:1.35rem;font-weight:500;letter-spacing:-.01em}
+.pill{
+  display:inline-flex;align-items:center;gap:.45rem;
+  border:1px solid var(--hair);border-radius:999px;padding:.28rem .75rem;
+  font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+}
+.pill.demo{border-color:rgba(250,178,25,.4);color:var(--warn)}
+.pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.spacer{flex:1}
+
+.banner{
+  display:flex;gap:.8rem;align-items:flex-start;
+  background:rgba(250,178,25,.07);border:1px solid rgba(250,178,25,.28);
+  border-radius:8px;padding:.85rem 1rem;margin-bottom:1.5rem;font-size:.88rem;
+}
+.banner svg{width:18px;height:18px;stroke:var(--warn);fill:none;stroke-width:1.6;flex:none;margin-top:.15rem}
+.banner b{color:var(--ink);font-weight:500}
+
+/* ---------------- tiles ---------------- */
+.tiles{display:grid;gap:1px;background:var(--hair);border:1px solid var(--hair);
+  border-radius:10px;overflow:hidden;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr));margin-bottom:1.5rem}
+.tile{background:var(--surface);padding:1.1rem 1.15rem}
+.tile .label{font-size:.7rem;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
+.tile .value{color:var(--ink);font-size:1.85rem;font-weight:400;line-height:1.2;margin-top:.35rem}
+.tile .delta{font-size:.8rem;margin-top:.15rem;display:flex;align-items:center;gap:.3rem}
+.up{color:var(--up)} .down{color:var(--down)}
+
+/* ---------------- panels ---------------- */
+.panels{display:grid;gap:1.25rem;grid-template-columns:repeat(auto-fit,minmax(min(100%,22rem),1fr))}
+.panel{background:var(--surface);border:1px solid var(--hair);border-radius:10px;padding:1.15rem 1.25rem}
+.panel.wide{grid-column:1/-1}
+.panel-head{display:flex;align-items:baseline;gap:.8rem;margin-bottom:1rem}
+.panel-head h2{color:var(--ink);font-size:.95rem;font-weight:500}
+.panel-head span{font-size:.78rem;color:var(--muted)}
+
+/* chart */
+.chart{width:100%;display:block;overflow:visible}
+.chart .grid-line{stroke:var(--grid);stroke-width:1}
+.chart .axis{stroke:var(--axis);stroke-width:1}
+.chart text{fill:var(--muted);font-size:11px;font-family:var(--sans)}
+.chart .series{fill:none;stroke:var(--up);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .area{fill:url(#fade)}
+.chart .cross{stroke:var(--ink-2);stroke-width:1;stroke-dasharray:3 3;opacity:0}
+.chart .dot{fill:var(--up);stroke:var(--surface);stroke-width:2;opacity:0}
+.tip{
+  position:absolute;pointer-events:none;opacity:0;transform:translate(-50%,-118%);
+  background:var(--surface-2);border:1px solid var(--hair);border-radius:7px;
+  padding:.45rem .65rem;font-size:.78rem;color:var(--ink);white-space:nowrap;
+  transition:opacity .12s;box-shadow:0 8px 24px rgba(0,0,0,.5);
+}
+.tip small{display:block;color:var(--muted);font-size:.7rem}
+.chart-wrap{position:relative}
+
+/* legend — identity is never colour alone, so every key is labelled */
+.legend{display:flex;gap:1.1rem;flex-wrap:wrap;margin-top:.7rem;font-size:.78rem;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:.4rem}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th{
+  text-align:start;font-weight:500;color:var(--muted);font-size:.7rem;
+  letter-spacing:.11em;text-transform:uppercase;padding:.5rem .6rem;
+  border-bottom:1px solid var(--hair);white-space:nowrap;
+}
+td{padding:.62rem .6rem;border-bottom:1px solid rgba(255,255,255,.05);white-space:nowrap}
+tbody tr:hover{background:var(--surface-2)}
+.side{font-size:.7rem;letter-spacing:.1em;padding:.1rem .45rem;border-radius:3px;border:1px solid currentColor}
+.tbl-wrap{overflow-x:auto;margin-inline:-1.25rem;padding-inline:1.25rem}
+
+/* feed */
+.feed{display:flex;flex-direction:column;gap:.1rem;max-height:23rem;overflow-y:auto}
+.ev{display:grid;grid-template-columns:auto auto 1fr;gap:.7rem;align-items:baseline;
+  padding:.5rem .3rem;border-bottom:1px solid rgba(255,255,255,.05);font-size:.84rem}
+.ev time{color:var(--muted);font-size:.75rem}
+.tag{font-size:.66rem;letter-spacing:.09em;text-transform:uppercase;
+  padding:.12rem .45rem;border-radius:3px;border:1px solid var(--hair);color:var(--ink-2)}
+.tag.exec{border-color:rgba(57,135,229,.5);color:var(--up)}
+.tag.skip{border-color:rgba(137,135,129,.5);color:var(--muted)}
+.tag.block{border-color:rgba(208,59,59,.5);color:var(--crit)}
+
+/* health */
+.health{display:flex;flex-direction:column;gap:.55rem}
+.hrow{display:flex;align-items:center;gap:.7rem;font-size:.86rem}
+.hrow .st{display:inline-flex;align-items:center;gap:.4rem;color:var(--good);font-size:.78rem}
+.hrow .st svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2}
+.hrow .st.warn{color:var(--warn)}
+.hrow .name{flex:1;color:var(--ink-2)}
+.hrow .meta{color:var(--muted);font-size:.76rem}
+
+/* disabled controls */
+.ctl{display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  padding:.75rem 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.ctl:last-child{border-bottom:0}
+.ctl .name{color:var(--ink-2)}
+.ctl .name small{display:block;color:var(--muted);font-size:.76rem}
+.switch{width:44px;height:26px;border-radius:999px;background:var(--axis);
+  border:1px solid var(--hair);position:relative;flex:none}
+.switch::after{content:'';position:absolute;top:3px;inset-inline-start:3px;
+  width:18px;height:18px;border-radius:50%;background:var(--muted)}
+.switch.on{background:rgba(57,135,229,.3)}
+.switch.on::after{inset-inline-start:21px;background:var(--up)}
+[aria-disabled="true"]{opacity:.55;cursor:not-allowed}
+
+.view{display:none}
+.view.on{display:block}
+
+footer.note{margin-top:2.5rem;padding-top:1.25rem;border-top:1px solid var(--hair);
+  font-size:.8rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:1rem;justify-content:space-between}
+
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <aside>
+    <div class="brand">
+      <span class="dot" aria-hidden="true"></span>
+      <span><strong>The Trader's Observatory</strong><small>Control Panel</small></span>
+    </div>
+
+    <nav id="nav" aria-label="Sections">
+      <button type="button" data-view="overview" aria-current="page"><span class="bar"></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>Overview</button>
+      <button type="button" data-view="trades"><span class="bar"></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10"/></svg>Trades</button>
+      <button type="button" data-view="signals"><span class="bar"></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h4l3-8 4 16 3-8h2"/></svg>Signals</button>
+      <button type="button" data-view="controls"><span class="bar"></span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Controls</button>
+    </nav>
+
+    <p class="side-note">Preview build. The live panel runs on a private
+      server behind password, one-time code, and a signed session.</p>
+  </aside>
+
+  <main>
+    <div class="top">
+      <h1>Overview</h1>
+      <span class="pill"><span class="dot" style="background:var(--good)"></span>Bot online</span>
+      <span class="pill demo"><span class="dot"></span>Demo data</span>
+      <span class="spacer"></span>
+      <span class="pill mono" id="clock">—</span>
+    </div>
+
+    <div class="banner">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
+      <p><b>This is a preview, not the live panel.</b> Every number here is
+      generated for display and nothing is connected to a broker. The real
+      system is private — controls are shown so you can see the interface, and
+      they do not act.</p>
+    </div>
+
+    <!-- ============ OVERVIEW ============ -->
+    <section class="view on" id="view-overview">
+      <div class="tiles">
+        <div class="tile"><div class="label">Balance</div><div class="value mono">$24,860</div>
+          <div class="delta up">+ $1,412 this month</div></div>
+        <div class="tile"><div class="label">Open equity</div><div class="value mono">$25,104</div>
+          <div class="delta up">+ $244 unrealised</div></div>
+        <div class="tile"><div class="label">Win rate</div><div class="value mono">58%</div>
+          <div class="delta">104 of 179 closed</div></div>
+        <div class="tile"><div class="label">Expectancy</div><div class="value mono">0.34 R</div>
+          <div class="delta">per trade, last 90 days</div></div>
+        <div class="tile"><div class="label">Open positions</div><div class="value mono">3</div>
+          <div class="delta">0.06 lots exposed</div></div>
+      </div>
+
+      <div class="panels">
+        <div class="panel wide">
+          <div class="panel-head"><h2>Account equity</h2><span>Last 90 days · USD</span></div>
+          <div class="chart-wrap" id="equity-wrap">
+            <svg class="chart" id="equity" viewBox="0 0 960 260" preserveAspectRatio="none"
+                 role="img" aria-label="Account equity over the last 90 days, rising from about 21,000 to about 25,100 US dollars">
+              <defs><linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#3987E5" stop-opacity=".22"/>
+                <stop offset="1" stop-color="#3987E5" stop-opacity="0"/>
+              </linearGradient></defs>
+            </svg>
+            <div class="tip" id="equity-tip"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Daily result</h2><span>Last 21 sessions · R</span></div>
+          <div class="chart-wrap" id="daily-wrap">
+            <svg class="chart" id="daily" viewBox="0 0 480 200" role="img"
+                 aria-label="Daily result in R for the last 21 sessions, thirteen up and eight down"></svg>
+            <div class="tip" id="daily-tip"></div>
+          </div>
+          <div class="legend">
+            <span><i style="background:var(--up)"></i> Up day</span>
+            <span><i style="background:var(--down)"></i> Down day</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>System health</h2><span>Live checks</span></div>
+          <div class="health" id="health"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TRADES ============ -->
+    <section class="view" id="view-trades">
+      <div class="panel wide">
+        <div class="panel-head"><h2>Positions</h2><span>3 open · 12 closed today</span></div>
+        <div class="tbl-wrap"><table id="trades"><thead><tr>
+          <th>Ticket</th><th>Symbol</th><th>Side</th><th>Lots</th>
+          <th>Entry</th><th>Stop</th><th>Target</th><th>P/L</th><th>Status</th>
+        </tr></thead><tbody></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- ============ SIGNALS ============ -->
+    <section class="view" id="view-signals">
+      <div class="panels">
+        <div class="panel wide">
+          <div class="panel-head"><h2>Pipeline</h2><span>Message → classifier → decision</span></div>
+          <div class="feed" id="feed"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CONTROLS ============ -->
+    <section class="view" id="view-controls">
+      <div class="panels">
+        <div class="panel">
+          <div class="panel-head"><h2>Execution</h2><span>Read-only in this preview</span></div>
+          <div id="controls"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Risk limits</h2><span>Read-only in this preview</span></div>
+          <div id="limits"></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="note">
+      <span>Preview of a private system — interface only, no live connection.</span>
+      <span>Design &amp; build by Eprahem Yhya</span>
+    </footer>
+  </main>
+</div>
+
+<script>
+/* =====================================================================
+   Everything below is generated. A demo of a trading panel must not
+   carry one real number, one real ticket, or one real source name.
+   A fixed seed keeps the screenshots reproducible.
+===================================================================== */
+const rand = (() => { let s = 20260905;
+  return () => (s = (s * 1664525 + 1013904223) % 4294967296) / 4294967296; })();
+
+/* ---------- equity series ---------- */
+const DAYS = 90, START = 21000, END = 25104;
+const walk = [];
+let v = START;
+for (let i = 0; i < DAYS; i++){
+  v += (rand() - .5) * 300;                  // noise only — the trend is added after
+  if (i === 46) v -= 620;                    // one bad session, so it is not a fantasy
+  walk.push(v);
+}
+// Spread the difference between where the walk landed and where the account
+// should end across the whole series. Pinning only the last point would draw
+// a flat line with a cliff at the right edge — which is exactly what it did.
+const drift = (END - walk[DAYS-1]) / (DAYS - 1);
+const equity = walk.map((x, i) => ({d:i, v:Math.round(x + drift * i)}));
+
+const fmt  = n => '$' + n.toLocaleString('en-US');
+const dayLabel = i => {
+  const d = new Date(Date.now() - (DAYS - 1 - i) * 864e5);
+  return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+};
+
+function drawEquity(){
+  const svg = document.getElementById('equity');
+  const W = 960, H = 260, PL = 58, PR = 16, PT = 14, PB = 26;
+  const xs = i => PL + (i / (DAYS - 1)) * (W - PL - PR);
+  const lo = Math.min(...equity.map(p => p.v)) - 300;
+  const hi = Math.max(...equity.map(p => p.v)) + 300;
+  const ys = val => PT + (1 - (val - lo) / (hi - lo)) * (H - PT - PB);
+
+  let out = '';
+  // recessive grid, four steps
+  for (let k = 0; k <= 4; k++){
+    const val = lo + (hi - lo) * k / 4, y = ys(val);
+    out += `<line class="grid-line" x1="${PL}" y1="${y}" x2="${W-PR}" y2="${y}"/>`;
+    out += `<text x="${PL-10}" y="${y+4}" text-anchor="end">${fmt(Math.round(val/100)*100)}</text>`;
+  }
+  out += `<line class="axis" x1="${PL}" y1="${H-PB}" x2="${W-PR}" y2="${H-PB}"/>`;
+  [0, 30, 60, DAYS-1].forEach(i => {
+    out += `<text x="${xs(i)}" y="${H-PB+18}" text-anchor="middle">${dayLabel(i)}</text>`;
+  });
+
+  const line = equity.map((p,i) => `${i?'L':'M'}${xs(i).toFixed(1)},${ys(p.v).toFixed(1)}`).join('');
+  out += `<path class="area" d="${line}L${xs(DAYS-1)},${H-PB}L${PL},${H-PB}Z"/>`;
+  out += `<path class="series" d="${line}"/>`;
+  // the last value is direct-laballed; no number on every point
+  out += `<circle cx="${xs(DAYS-1)}" cy="${ys(equity[DAYS-1].v)}" r="4" fill="var(--up)"/>`;
+  out += `<line class="cross" id="eq-cross" y1="${PT}" y2="${H-PB}"/>`;
+  out += `<circle class="dot" id="eq-dot" r="5"/>`;
+  svg.innerHTML = svg.innerHTML + out;
+
+  // crosshair + tooltip: an SVG chart on a page is interactive by default
+  const wrap = document.getElementById('equity-wrap');
+  const tip  = document.getElementById('equity-tip');
+  const cross = svg.querySelector('#eq-cross');
+  const dot   = svg.querySelector('#eq-dot');
+  wrap.addEventListener('pointermove', e => {
+    const r = wrap.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width * W;
+    const i = Math.max(0, Math.min(DAYS-1,
+      Math.round((px - PL) / (W - PL - PR) * (DAYS - 1))));
+    const x = xs(i), y = ys(equity[i].v);
+    cross.setAttribute('x1', x); cross.setAttribute('x2', x); cross.style.opacity = 1;
+    dot.setAttribute('cx', x); dot.setAttribute('cy', y); dot.style.opacity = 1;
+    tip.style.opacity = 1;
+    tip.style.left = (x / W * r.width) + 'px';
+    tip.style.top  = (y / H * r.height) + 'px';
+    tip.innerHTML = `<span class="mono">${fmt(equity[i].v)}</span><small>${dayLabel(i)}</small>`;
+  });
+  wrap.addEventListener('pointerleave', () => {
+    cross.style.opacity = dot.style.opacity = tip.style.opacity = 0;
+  });
+}
+
+/* ---------- daily result ---------- */
+const daily = Array.from({length:21}, () => +( (rand()*3.2 - 1.15) ).toFixed(2));
+function drawDaily(){
+  // The description has to be counted, not asserted — a hand-written figure
+  // drifts away from the data the first time the data changes.
+  const up = daily.filter(r => r >= 0).length;
+  document.getElementById('daily').setAttribute('aria-label',
+    `Daily result in R for the last 21 sessions, ${up} up and ${21-up} down`);
+  const svg = document.getElementById('daily');
+  const W = 480, H = 200, PL = 34, PR = 8, PT = 10, PB = 22;
+  const max = Math.max(...daily.map(Math.abs)) * 1.15;
+  const ys = r => PT + (1 - (r + max) / (2 * max)) * (H - PT - PB);
+  const bw = (W - PL - PR) / daily.length - 4;      // 4px keeps a surface gap
+  let out = `<line class="axis" x1="${PL}" y1="${ys(0)}" x2="${W-PR}" y2="${ys(0)}"/>`;
+  out += `<text x="${PL-8}" y="${ys(max*.72)+4}" text-anchor="end">+${max.toFixed(1)}R</text>`;
+  out += `<text x="${PL-8}" y="${ys(-max*.72)+4}" text-anchor="end">−${max.toFixed(1)}R</text>`;
+  daily.forEach((r, i) => {
+    const x = PL + i * ((W - PL - PR) / daily.length) + 2;
+    const y = r >= 0 ? ys(r) : ys(0);
+    const h = Math.max(2, Math.abs(ys(r) - ys(0)));
+    out += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}"
+             height="${h.toFixed(1)}" rx="3" fill="${r>=0?'var(--up)':'var(--down)'}"
+             data-i="${i}"/>`;
+  });
+  svg.innerHTML = out;
+
+  const wrap = document.getElementById('daily-wrap');
+  const tip  = document.getElementById('daily-tip');
+  wrap.addEventListener('pointermove', e => {
+    const b = e.target.closest('rect[data-i]');
+    if (!b){ tip.style.opacity = 0; return; }
+    const i = +b.dataset.i, r = daily[i];
+    const box = wrap.getBoundingClientRect();
+    tip.style.opacity = 1;
+    tip.style.left = (e.clientX - box.left) + 'px';
+    tip.style.top  = (e.clientY - box.top - 6) + 'px';
+    tip.innerHTML = `<span class="mono">${r>=0?'+':'−'}${Math.abs(r).toFixed(2)} R</span>
+                     <small>session ${i+1} · ${r>=0?'up day':'down day'}</small>`;
+  });
+  wrap.addEventListener('pointerleave', () => tip.style.opacity = 0);
+}
+
+/* ---------- trades ---------- */
+const TRADES = [
+  ['#48210', 'XAUUSD', 'BUY',  '0.02', '4412.60', '4404.00', '4429.00', +38.40, 'open'],
+  ['#48207', 'XAUUSD', 'SELL', '0.02', '4438.15', '4446.00', '4421.00', -12.80, 'open'],
+  ['#48201', 'EURUSD', 'BUY',  '0.02', '1.08340', '1.08120', '1.08790', +18.20, 'open'],
+  ['#48196', 'XAUUSD', 'SELL', '0.02', '4451.00', '4458.00', '4437.00', +64.00, 'target'],
+  ['#48188', 'XAUUSD', 'BUY',  '0.01', '4396.20', '4390.00', '4409.00', -31.00, 'stopped'],
+  ['#48181', 'US30',   'BUY',  '0.10', '41820.0', '41700.0', '42060.0', +96.50, 'target'],
+  ['#48174', 'XAUUSD', 'SELL', '0.02', '4470.90', '4479.00', '4452.00', -40.50, 'stopped'],
+];
+function drawTrades(){
+  document.querySelector('#trades tbody').innerHTML = TRADES.map(t => {
+    const pl = t[7], cls = pl >= 0 ? 'up' : 'down';
+    const sideColor = t[2] === 'BUY' ? 'var(--up)' : 'var(--down)';
+    return `<tr>
+      <td class="mono">${t[0]}</td><td>${t[1]}</td>
+      <td><span class="side" style="color:${sideColor}">${t[2]}</span></td>
+      <td class="mono">${t[3]}</td><td class="mono">${t[4]}</td>
+      <td class="mono">${t[5]}</td><td class="mono">${t[6]}</td>
+      <td class="mono ${cls}">${pl>=0?'+':'−'}$${Math.abs(pl).toFixed(2)}</td>
+      <td>${t[8]}</td></tr>`;
+  }).join('');
+}
+
+/* ---------- pipeline feed ---------- */
+const FEED = [
+  ['09:41:12','exec','Entry parsed — XAUUSD BUY, stop 4404, three targets. Order sent.'],
+  ['09:40:58','skip','Message read as commentary. Nothing executable, forwarded as text.'],
+  ['09:36:04','exec','Management order matched to #48210 by reply. Stop moved to entry.'],
+  ['09:31:47','block','Stop sits on the wrong side of entry — order refused, source notified.'],
+  ['09:22:10','exec','Partial close 50% on #48196 at first target.'],
+  ['09:18:33','skip','Duplicate of the message 40 seconds earlier. Ignored.'],
+  ['09:04:52','exec','Entry parsed — EURUSD BUY, stop 1.08120. Order sent.'],
+  ['08:57:19','block','Instruction asked to remove the stop. Never obeyed.'],
+];
+function drawFeed(){
+  document.getElementById('feed').innerHTML = FEED.map(f =>
+    `<div class="ev"><time class="mono">${f[0]}</time>
+     <span class="tag ${f[1]}">${f[1]==='exec'?'executed':f[1]==='skip'?'skipped':'blocked'}</span>
+     <span>${f[2]}</span></div>`).join('');
+}
+
+/* ---------- health ---------- */
+const HEALTH = [
+  ['Signal reader', 'ok', 'last message 41 s ago'],
+  ['Classifier',    'ok', '2,514 classified today'],
+  ['Broker link',   'ok', 'ping 38 ms'],
+  ['Heartbeat',     'ok', 'written 12 s ago'],
+  ['Backup',        'warn', 'last run 26 h ago'],
+];
+function drawHealth(){
+  document.getElementById('health').innerHTML = HEALTH.map(h => `
+    <div class="hrow">
+      <span class="st ${h[1]==='ok'?'':'warn'}">
+        <svg viewBox="0 0 24 24" aria-hidden="true">${h[1]==='ok'
+          ? '<path d="M20 6 9 17l-5-5"/>'
+          : '<circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/>'}</svg>
+        ${h[1]==='ok'?'OK':'Check'}
+      </span>
+      <span class="name">${h[0]}</span>
+      <span class="meta">${h[2]}</span>
+    </div>`).join('');
+}
+
+/* ---------- controls (inert on purpose) ---------- */
+const CONTROLS = [
+  ['Auto-execute entries','Orders are placed without confirmation',true],
+  ['Follow management orders','Stop moves and partial closes',true],
+  ['Repeat last signal','Re-open the previous trade on request',false],
+  ['Trade outside session','Allow orders when the market is thin',false],
+];
+const LIMITS = [
+  ['Max lots per order','0.02'],
+  ['Max open positions','4'],
+  ['Daily loss stop','3 R'],
+  ['Max spread','$3.00'],
+];
+function drawControls(){
+  document.getElementById('controls').innerHTML = CONTROLS.map(c => `
+    <div class="ctl" aria-disabled="true" title="Read-only preview">
+      <span class="name">${c[0]}<small>${c[1]}</small></span>
+      <span class="switch ${c[2]?'on':''}" role="switch"
+            aria-checked="${c[2]}" aria-disabled="true"></span>
+    </div>`).join('');
+  document.getElementById('limits').innerHTML = LIMITS.map(l => `
+    <div class="ctl" aria-disabled="true" title="Read-only preview">
+      <span class="name">${l[0]}</span>
+      <span class="mono" style="color:var(--ink)">${l[1]}</span>
+    </div>`).join('');
+}
+
+/* ---------- nav ---------- */
+document.getElementById('nav').addEventListener('click', e => {
+  const b = e.target.closest('button[data-view]');
+  if (!b) return;
+  document.querySelectorAll('#nav button').forEach(x => x.removeAttribute('aria-current'));
+  b.setAttribute('aria-current','page');
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
+  document.getElementById('view-' + b.dataset.view).classList.add('on');
+  document.querySelector('h1').textContent = b.textContent.trim();
+});
+
+/* ---------- clock ---------- */
+setInterval(() => {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('en-GB', {hour12:false}) + ' UTC';
+}, 1000);
+
+drawEquity(); drawDaily(); drawTrades(); drawFeed(); drawHealth(); drawControls();
+</script>
+</body>
+</html>
