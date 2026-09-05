@@ -1,35 +1,36 @@
-# The Trader's Observatory — Control Panel (Preview)
+# Observatory — Trading Bot Control Panel (Preview)
 
-The interface of a private automated trading system, shown as a read-only
-preview. Nothing here is connected to a broker and no number is real.
+The actual interface of a private automated trading system, published as a
+public preview. Same React application, same components, same Arabic RTL
+layout — running on generated data with nothing behind it.
 
 **Live:** https://eprahem-yhya.github.io/observatory/
 
-## What it shows
+## What is real and what is not
 
-Four sections of the real panel — overview, positions, the signal pipeline,
-and controls. Controls are rendered in their real state and deliberately
-inert: the point is to show the interface, not to hand out a remote.
+Real: every screen, panel, chart and interaction. This is the application
+itself, built from its own source.
 
-## Notes on the charts
+Not real: all of the data. Account, tickets, prices, signals, log lines and
+channel names are generated in the browser. No broker, no server, no database.
+Writes are accepted and discarded, so buttons respond and change nothing.
 
-- **Colour carries one meaning: direction.** Up is blue, down is red. The
-  green/red pair every trading screen reaches for fails a colourblind
-  separation test badly — around ΔE 4 where 8 is the floor — so a
-  red/green viewer reads a losing day as a winning one. The blue/red pair
-  used here measures ΔE 19. Both are labelled as well, so colour never
-  carries the meaning alone.
-- **One axis, never two.** Equity and daily result are different scales, so
-  they are two charts rather than one chart with two y-axes.
-- **Hover is part of the chart**, not an extra: crosshair and tooltip on the
-  equity line, per-bar tooltip on daily result.
-- The equity series is generated with drift spread across the whole range.
-  Pinning the final value alone drew a flat line with a cliff at the right
-  edge — a good reminder that a chart can be technically correct and still
-  lie about the shape.
+## How it was made into a demo
 
-## Structure
+The live application funnels every call through a single `request()` in
+`src/api/client.ts` and a single WebSocket client in `src/api/ws.ts`. Replacing
+those two files was enough to put the entire interface on generated data —
+no page, hook or component was touched. That is the payoff of routing all
+network access through one place.
 
-    index.html    markup, styles, data generation, and both charts
+- `client.ts` becomes a path router over an in-memory dataset, with a small
+  artificial latency so the loading states stay visible.
+- `ws.ts` becomes a scripted event emitter, so the live feed and the
+  connection badge behave as they do in the running system.
+- `BrowserRouter` becomes `HashRouter`, because a static host cannot rewrite
+  an inner route back to `index.html`.
+- A fixed notice states on every screen that this is a preview.
+
+The source of the trading system itself stays private.
 
 Design and build by **Eprahem Yhya** — eprahemyhya45@gmail.com
